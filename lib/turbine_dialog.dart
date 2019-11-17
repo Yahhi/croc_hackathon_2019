@@ -116,4 +116,10 @@ class _TurbineDialogState extends State<TurbineDialog> {
         Constants.SERVER_ADDRESS +
             "turbines?turbineId=${widget.turbineId}&status=100&useManual=$value"));
   }
+
+  @override
+  void dispose() {
+    bloc.dispose();
+    super.dispose();
+  }
 }

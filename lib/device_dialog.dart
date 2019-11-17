@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http_client/browser.dart';
-import 'package:http_client/console.dart';
 
 import 'bloc/device_state_updater.dart';
-import 'constants.dart';
 import 'model/static_object.dart';
 
 class DeviceDialog extends StatefulWidget {
@@ -58,14 +55,9 @@ class _DeviceDialogState extends State<DeviceDialog> {
     );
   }
 
-  void _sendNewPower(double value) async {
-    //http://api.prohack.fun/turbines?turbineId=1&status=10
-    print("sending value ${value.round()}");
-    final client = BrowserClient();
-    final rs = await client.send(Request(
-        'POST',
-        Constants.SERVER_ADDRESS +
-            "turbines?turbineId=${widget.turbineId}&status=${value.round()}"));
-    print(rs.body);
+  @override
+  void dispose() {
+    bloc.dispose();
+    super.dispose();
   }
 }
