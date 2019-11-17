@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:http_client/browser.dart';
 import 'package:http_client/console.dart';
-import 'package:miners/model/turbine.dart';
+import 'package:miners/bloc/turbine_state_updater.dart';
 
 import 'constants.dart';
+import 'model/turbine.dart';
 
 class TurbineDialog extends StatefulWidget {
-  final Turbine turbine;
+  final int turbineId;
 
   const TurbineDialog(
-    this.turbine, {
+    this.turbineId, {
     Key key,
   }) : super(key: key);
 
@@ -20,11 +21,12 @@ class TurbineDialog extends StatefulWidget {
 }
 
 class _TurbineDialogState extends State<TurbineDialog> {
-  int _changedTurbineValue;
+  TurbineStateUpdater bloc;
+  int turbinePower;
 
   @override
   void initState() {
-    _changedTurbineValue = widget.turbine.power;
+    bloc = new TurbineStateUpdater(widget.turbineId);
     super.initState();
   }
 
@@ -32,31 +34,45 @@ class _TurbineDialogState extends State<TurbineDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text("Вентилятор"),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Slider(
-            value: _changedTurbineValue.roundToDouble(),
-            onChangeEnd: _sendNewPower,
-            onChanged: (value) {
-              setState(() {
-                _changedTurbineValue = value.round();
-              });
-            },
-            min: 0.0,
-            max: 100.0,
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[Text("0"), Text("100")],
-            ),
-          ),
-          widget.turbine.levelCO == null
-              ? Container()
-              : Text("Уровень CO: ${widget.turbine.levelCO}"),
-        ],
+      content: StreamBuilder<Turbine>(
+        stream: bloc.turbineData,
+        builder: (BuildContext ctxt, AsyncSnapshot<Turbine> data) {
+          Turbine turbine = data.data;
+          if (turbine == null)
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                CircularProgressIndicator(),
+              ],
+            );
+          turbinePower = turbine.power;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Slider(
+                value: turbinePower.roundToDouble(),
+                onChangeEnd: _sendNewPower,
+                onChanged: (value) {
+                  setState(() {
+                    turbinePower = value.round();
+                  });
+                },
+                min: 0.0,
+                max: 100.0,
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[Text("0"), Text("100")],
+                ),
+              ),
+              turbine.levelCO == null
+                  ? Container()
+                  : Text("Уровень CO: ${turbine.levelCO}"),
+            ],
+          );
+        },
       ),
       actions: <Widget>[
         FlatButton(
@@ -76,7 +92,7 @@ class _TurbineDialogState extends State<TurbineDialog> {
     final rs = await client.send(Request(
         'POST',
         Constants.SERVER_ADDRESS +
-            "turbines?turbineId=${widget.turbine.id}&status=${value.round()}"));
+            "turbines?turbineId=${widget.turbineId}&status=${value.round()}"));
     print(rs.body);
   }
 }

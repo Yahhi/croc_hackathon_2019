@@ -30,6 +30,7 @@ class _MapWithItemsState extends State<MapWithItems> {
   final GlobalKey imageKey = new GlobalKey();
   Future<ui.Image> turbineImage;
   bool isImageloaded = false;
+  ObjectsRenderer renderer;
 
   @override
   void initState() {
@@ -66,16 +67,21 @@ class _MapWithItemsState extends State<MapWithItems> {
             initialData: List(),
             builder:
                 (BuildContext ctxt, AsyncSnapshot<List<Turbine>> snapshot) {
-              return CustomPaint(
-                child: Image.network(
-                  widget.mine.imageAddress,
-                  key: imageKey,
-                ),
-                foregroundPainter: ObjectsRenderer(
-                  snapshot.data,
-                  imageData.data,
-                  Size(widget.mine.width.roundToDouble(),
-                      widget.mine.height.roundToDouble()),
+              renderer = ObjectsRenderer(
+                snapshot.data,
+                imageData.data,
+                Size(widget.mine.width.roundToDouble(),
+                    widget.mine.height.roundToDouble()),
+              );
+              return GestureDetector(
+                onTapDown: (TapDownDetails details) =>
+                    onTapDown(context, details),
+                child: CustomPaint(
+                  child: Image.network(
+                    widget.mine.imageAddress,
+                    key: imageKey,
+                  ),
+                  foregroundPainter: renderer,
                 ),
               );
             },
@@ -84,19 +90,31 @@ class _MapWithItemsState extends State<MapWithItems> {
     );
   }
 
-  void _showTurbineData(Turbine turbine) {
+  void _showTurbineData(int id) {
     showDialog(
         context: context,
         builder: (BuildContext ctxt) {
-          return TurbineDialog(turbine);
+          return TurbineDialog(id);
         });
+  }
+
+  void onTapDown(BuildContext context, TapDownDetails details) {
+    print('${details.globalPosition}');
+    final RenderBox box = context.findRenderObject();
+    final Offset localOffset = box.globalToLocal(details.globalPosition);
+    int clickedId = renderer.findTurbineNearby(localOffset);
+    if (clickedId != null) {
+      _showTurbineData(clickedId);
+    }
   }
 }
 
 class ObjectsRenderer extends CustomPainter {
+  static const _ICON_SIZE = 30.0;
   final List<Turbine> turbines;
   final ui.Image turbineImage;
   final Size originalImageSize;
+  Map<int, Offset> turbineOffsets = new Map();
 
   ObjectsRenderer(
     this.turbines,
@@ -111,21 +129,29 @@ class ObjectsRenderer extends CustomPainter {
           turbine.positionX * (size.width / originalImageSize.width);
       double yPosition =
           turbine.positionY * (size.height / originalImageSize.height);
+      Offset offset = Offset(xPosition, yPosition);
       paintImage(
           canvas: canvas,
           rect: Rect.fromCenter(
-              center: Offset(xPosition, yPosition), width: 30.0, height: 30.0),
+              center: offset, width: _ICON_SIZE, height: _ICON_SIZE),
           image: turbineImage);
-      /*canvas.drawImage(
-          turbineImage,
-          new Offset(turbine.positionX.roundToDouble(),
-              turbine.positionY.roundToDouble()),
-          new Paint());*/
+      turbineOffsets[turbine.id] = offset;
     }
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
     return false;
+  }
+
+  int findTurbineNearby(Offset localOffset) {
+    print("checking ${localOffset.dx}, ${localOffset.dy}");
+    for (MapEntry<int, Offset> mapItem in turbineOffsets.entries) {
+      if ((mapItem.value.dx - localOffset.dx).abs() < _ICON_SIZE &&
+          (mapItem.value.dy - localOffset.dy).abs() < _ICON_SIZE) {
+        return mapItem.key;
+      }
+    }
+    return null;
   }
 }
