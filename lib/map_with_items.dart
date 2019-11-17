@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:miners/model/InMapObject.dart';
 import 'package:miners/turbine_dialog.dart';
 
 import 'bloc/mine_loader_bloc.dart';
@@ -29,7 +30,7 @@ class MapWithItems extends StatefulWidget {
 class _MapWithItemsState extends State<MapWithItems> {
   final GlobalKey imageKey = new GlobalKey();
   Future<ui.Image> turbineImage;
-  bool isImageloaded = false;
+  ui.Image deviceImage;
   ObjectsRenderer renderer;
 
   @override
@@ -39,6 +40,8 @@ class _MapWithItemsState extends State<MapWithItems> {
   }
 
   Future<ui.Image> initImage() async {
+    deviceImage = await loadImage(
+        new Uint8List.view((await rootBundle.load('assets/modem.png')).buffer));
     final ByteData data = await rootBundle.load('assets/turbine.png');
     return await loadImage(new Uint8List.view(data.buffer));
   }
@@ -46,9 +49,6 @@ class _MapWithItemsState extends State<MapWithItems> {
   Future<ui.Image> loadImage(List<int> img) async {
     final Completer<ui.Image> completer = new Completer();
     ui.decodeImageFromList(img, (ui.Image img) {
-      setState(() {
-        isImageloaded = true;
-      });
       return completer.complete(img);
     });
     return completer.future;
@@ -62,14 +62,15 @@ class _MapWithItemsState extends State<MapWithItems> {
         if (imageData.data == null)
           return CircularProgressIndicator();
         else
-          return StreamBuilder<List<Turbine>>(
-            stream: widget.bloc.coolers,
+          return StreamBuilder<List<InMapObject>>(
+            stream: widget.bloc.inMapObjects,
             initialData: List(),
             builder:
-                (BuildContext ctxt, AsyncSnapshot<List<Turbine>> snapshot) {
+                (BuildContext ctxt, AsyncSnapshot<List<InMapObject>> snapshot) {
               renderer = ObjectsRenderer(
                 snapshot.data,
                 imageData.data,
+                deviceImage,
                 Size(widget.mine.width.roundToDouble(),
                     widget.mine.height.roundToDouble()),
               );
@@ -98,12 +99,25 @@ class _MapWithItemsState extends State<MapWithItems> {
         });
   }
 
+  void _showDeviceData(int id) {
+    showDialog(
+        context: context,
+        builder: (BuildContext ctxt) {
+          return TurbineDialog(id);
+        });
+  }
+
   void onTapDown(BuildContext context, TapDownDetails details) {
     print('${details.globalPosition}');
     final RenderBox box = context.findRenderObject();
     final Offset localOffset = box.globalToLocal(details.globalPosition);
     int clickedId = renderer.findTurbineNearby(localOffset);
-    if (clickedId != null) {
+    if (clickedId == null) {
+      clickedId = renderer.findTurbineNearby(localOffset);
+      if (clickedId != null) {
+        _showDeviceData(clickedId);
+      }
+    } else {
       _showTurbineData(clickedId);
     }
   }
@@ -111,31 +125,35 @@ class _MapWithItemsState extends State<MapWithItems> {
 
 class ObjectsRenderer extends CustomPainter {
   static const _ICON_SIZE = 30.0;
-  final List<Turbine> turbines;
+  final List<InMapObject> turbines;
   final ui.Image turbineImage;
+  final ui.Image deviceImage;
   final Size originalImageSize;
   Map<int, Offset> turbineOffsets = new Map();
 
   ObjectsRenderer(
     this.turbines,
     this.turbineImage,
+    this.deviceImage,
     this.originalImageSize,
   );
 
   @override
   void paint(Canvas canvas, Size size) async {
-    for (Turbine turbine in turbines) {
-      double xPosition =
-          turbine.positionX * (size.width / originalImageSize.width);
-      double yPosition =
-          turbine.positionY * (size.height / originalImageSize.height);
-      Offset offset = Offset(xPosition, yPosition);
-      paintImage(
-          canvas: canvas,
-          rect: Rect.fromCenter(
-              center: offset, width: _ICON_SIZE, height: _ICON_SIZE),
-          image: turbineImage);
-      turbineOffsets[turbine.id] = offset;
+    for (InMapObject inMapObject in turbines) {
+      if (inMapObject.positionX != null && inMapObject.positionY != null) {
+        double xPosition =
+            inMapObject.positionX * (size.width / originalImageSize.width);
+        double yPosition =
+            inMapObject.positionY * (size.height / originalImageSize.height);
+        Offset offset = Offset(xPosition, yPosition);
+        paintImage(
+            canvas: canvas,
+            rect: Rect.fromCenter(
+                center: offset, width: _ICON_SIZE, height: _ICON_SIZE),
+            image: inMapObject is Turbine ? turbineImage : deviceImage);
+        turbineOffsets[inMapObject.id] = offset;
+      }
     }
   }
 

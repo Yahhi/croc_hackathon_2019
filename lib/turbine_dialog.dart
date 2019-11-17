@@ -23,6 +23,7 @@ class TurbineDialog extends StatefulWidget {
 class _TurbineDialogState extends State<TurbineDialog> {
   TurbineStateUpdater bloc;
   int turbinePower;
+  bool isManualUpdateEnabled = false;
 
   @override
   void initState() {
@@ -52,11 +53,14 @@ class _TurbineDialogState extends State<TurbineDialog> {
               Slider(
                 value: turbinePower.roundToDouble(),
                 onChangeEnd: _sendNewPower,
-                onChanged: (value) {
-                  setState(() {
-                    turbinePower = value.round();
-                  });
-                },
+                onChanged: isManualUpdateEnabled
+                    ? (value) {
+                        setState(() {
+                          turbinePower = value.round();
+                        });
+                      }
+                    : null,
+                label: turbinePower.toString(),
                 min: 0.0,
                 max: 100.0,
               ),
@@ -66,6 +70,14 @@ class _TurbineDialogState extends State<TurbineDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[Text("0"), Text("100")],
                 ),
+              ),
+              SwitchListTile(
+                value: isManualUpdateEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    isManualUpdateEnabled = value;
+                  });
+                },
               ),
               turbine.levelCO == null
                   ? Container()

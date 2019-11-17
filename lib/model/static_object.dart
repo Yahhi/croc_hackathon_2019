@@ -1,8 +1,11 @@
-class StaticObject {
-  final double x, y;
-  final ObjectType type;
+import 'package:miners/model/InMapObject.dart';
 
-  StaticObject(this.x, this.y, this.type);
+class StaticObject extends InMapObject {
+  final String lastUpdate;
+
+  StaticObject.fromJson(Map<String, dynamic> map)
+      : this.lastUpdate = map["data"] == null
+            ? DateTime.now().toIso8601String()
+            : map["data"]["date"],
+        super(map["id"], map["deviceId"], map["x"], map["y"]);
 }
-
-enum ObjectType { turbine, reader }
