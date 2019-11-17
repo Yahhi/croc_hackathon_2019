@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http_client/browser.dart';
 import 'package:http_client/console.dart';
 import 'package:miners/model/turbine.dart';
 
@@ -71,7 +72,7 @@ class _TurbineDialogState extends State<TurbineDialog> {
   void _sendNewPower(double value) async {
     //http://api.prohack.fun/turbines?turbineId=1&status=10
     print("sending value ${value.round()}");
-    final client = ConsoleClient();
+    final client = BrowserClient();
     final rs = await client.send(Request(
         'POST',
         Constants.SERVER_ADDRESS +

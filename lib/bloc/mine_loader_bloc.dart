@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:http_client/console.dart';
+import 'package:http_client/browser.dart';
 import 'package:miners/constants.dart';
 import 'package:miners/model/mine.dart';
 import 'package:miners/model/turbine.dart';
@@ -20,12 +20,11 @@ class MineLoaderBloc {
 
   Future<Mine> _loadMine() async {
     print("loading");
-    final client = ConsoleClient();
+    final client = BrowserClient();
     final rs =
         await client.send(Request('GET', Constants.SERVER_ADDRESS + "mines/"));
     print("address: " + Constants.SERVER_ADDRESS + "mines/");
     final textContent = await rs.readAsString();
-    print("mines result");
     client.close();
     List<dynamic> datas = json.decode(textContent);
 
@@ -40,7 +39,7 @@ class MineLoaderBloc {
 
   Future updateMapObjects() async {
     print("updating map objects");
-    final client = ConsoleClient();
+    final client = BrowserClient();
     final turbinesText = await client.send(
         Request('GET', Constants.SERVER_ADDRESS + "turbines?mineId=$mineId"));
     final textContent = await turbinesText.readAsString();
