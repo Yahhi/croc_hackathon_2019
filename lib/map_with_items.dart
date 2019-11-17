@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:miners/device_dialog.dart';
 import 'package:miners/model/InMapObject.dart';
 import 'package:miners/model/static_object.dart';
 import 'package:miners/turbine_dialog.dart';
@@ -107,7 +108,7 @@ class _MapWithItemsState extends State<MapWithItems> {
     showDialog(
         context: context,
         builder: (BuildContext ctxt) {
-          return TurbineDialog(id);
+          return DeviceDialog(id);
         });
   }
 
@@ -117,7 +118,8 @@ class _MapWithItemsState extends State<MapWithItems> {
     final Offset localOffset = box.globalToLocal(details.globalPosition);
     int clickedId = renderer.findTurbineNearby(localOffset);
     if (clickedId == null) {
-      clickedId = renderer.findTurbineNearby(localOffset);
+      print("no turbine");
+      clickedId = renderer.findDeviceNearby(localOffset);
       if (clickedId != null) {
         _showDeviceData(clickedId);
       }
@@ -135,6 +137,7 @@ class ObjectsRenderer extends CustomPainter {
   final ui.Image personImage;
   final Size originalImageSize;
   Map<int, Offset> turbineOffsets = new Map();
+  Map<int, bool> areTurbines = new Map();
 
   ObjectsRenderer(
     this.objects,
@@ -159,6 +162,7 @@ class ObjectsRenderer extends CustomPainter {
                 center: offset, width: _ICON_SIZE, height: _ICON_SIZE),
             image: inMapObject is Turbine ? turbineImage : deviceImage);
         turbineOffsets[inMapObject.id] = offset;
+        areTurbines[inMapObject.id] = inMapObject is Turbine;
         if (inMapObject is StaticObject &&
             inMapObject.peopleCount != null &&
             inMapObject.peopleCount > 0) {
@@ -176,11 +180,23 @@ class ObjectsRenderer extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
-    return false;
+    return true;
   }
 
   int findTurbineNearby(Offset localOffset) {
-    print("checking ${localOffset.dx}, ${localOffset.dy}");
+    print("checking turbine ${localOffset.dx}, ${localOffset.dy}");
+    for (MapEntry<int, Offset> mapItem in turbineOffsets.entries) {
+      if (areTurbines[mapItem.key] &&
+          (mapItem.value.dx - localOffset.dx).abs() < (_ICON_SIZE / 2) &&
+          (mapItem.value.dy - localOffset.dy).abs() < (_ICON_SIZE / 2)) {
+        return mapItem.key;
+      }
+    }
+    return null;
+  }
+
+  int findDeviceNearby(Offset localOffset) {
+    print("checking device ${localOffset.dx}, ${localOffset.dy}");
     for (MapEntry<int, Offset> mapItem in turbineOffsets.entries) {
       if ((mapItem.value.dx - localOffset.dx).abs() < _ICON_SIZE &&
           (mapItem.value.dy - localOffset.dy).abs() < _ICON_SIZE) {

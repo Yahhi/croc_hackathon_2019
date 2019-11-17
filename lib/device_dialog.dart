@@ -33,15 +33,38 @@ class _DeviceDialogState extends State<DeviceDialog> {
       content: StreamBuilder<StaticObject>(
         stream: bloc.objectData,
         builder: (BuildContext ctxt, AsyncSnapshot<StaticObject> data) {
-          StaticObject turbine = data.data;
-          if (turbine == null)
+          print("dialog update");
+          StaticObject staticObject = data.data;
+          if (staticObject == null)
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 CircularProgressIndicator(),
               ],
             );
-          return Container();
+          print("people count ${staticObject.peopleCount}");
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              staticObject.gas == null
+                  ? Container()
+                  : Text("Gas: ${staticObject.gas}"),
+              staticObject.levelCO == null
+                  ? Container()
+                  : Text("CO: ${staticObject.levelCO}"),
+              staticObject.humidity == null
+                  ? Container()
+                  : Text("Влажность: ${staticObject.humidity}"),
+              staticObject.peopleCount == null
+                  ? Text("Людей поблизости нет")
+                  : Text("Количество людей рядом: ${staticObject.peopleCount}"),
+              staticObject.temperature == null
+                  ? Container()
+                  : Text("Температура: ${staticObject.temperature}"),
+            ],
+          );
         },
       ),
       actions: <Widget>[

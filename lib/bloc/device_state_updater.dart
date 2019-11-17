@@ -15,16 +15,20 @@ class DeviceStateUpdater {
   BrowserClient client;
 
   DeviceStateUpdater(this.id) {
+    print("init device updater with $id");
     _loadData();
   }
 
   Future _loadData() async {
     client = BrowserClient();
     updater = new Timer.periodic(Duration(seconds: 5), (_) async {
-      final rs = await client
-          .send(Request('GET', Constants.SERVER_ADDRESS + "turbine?id=$id"));
-      print("address: " + Constants.SERVER_ADDRESS + "turbine?id=$id");
+      print("address: " +
+          Constants.SERVER_ADDRESS +
+          "TooltipDevice?deviceId=$id");
+      final rs = await client.send(Request(
+          'GET', Constants.SERVER_ADDRESS + "TooltipDevice?deviceId=$id"));
       final textContent = await rs.readAsString();
+      print("deviceStateUpdater received: $textContent");
       Map<String, dynamic> turbineData = json.decode(textContent);
       _dataController.add(StaticObject.fromJson(turbineData));
     });

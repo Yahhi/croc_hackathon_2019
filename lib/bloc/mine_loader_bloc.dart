@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http_client/browser.dart';
@@ -15,6 +16,8 @@ class MineLoaderBloc {
   final BehaviorSubject<List<InMapObject>> _mapItemsController =
       new BehaviorSubject();
   Stream<List<InMapObject>> get inMapObjects => _mapItemsController.stream;
+
+  Timer _objectUpdater;
 
   MineLoaderBloc() {
     mine = _loadMine();
@@ -34,12 +37,13 @@ class MineLoaderBloc {
     Mine mine = Mine.fromMap(jsonData);
     mineId = mine.id;
 
-    updateMapObjects();
+    updateMapObjects(null);
+    _objectUpdater = Timer.periodic(Duration(seconds: 10), updateMapObjects);
 
     return mine;
   }
 
-  Future updateMapObjects() async {
+  Future updateMapObjects(_) async {
     print("updating map objects");
     final client = BrowserClient();
     List<InMapObject> objects = new List();
@@ -63,7 +67,6 @@ class MineLoaderBloc {
     List<dynamic> devicesJson = json.decode(deviceContent);
     for (var json in devicesJson) {
       StaticObject staticObject = StaticObject.fromJson(json);
-      print("static object ${staticObject.model}");
       objects.add(staticObject);
     }
 
@@ -71,5 +74,8 @@ class MineLoaderBloc {
     client.close();
   }
 
-  void sendNewPower(double value) {}
+  void dispose() {
+    _objectUpdater?.cancel();
+    _objectUpdater = null;
+  }
 }
