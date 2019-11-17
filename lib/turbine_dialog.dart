@@ -47,12 +47,13 @@ class _TurbineDialogState extends State<TurbineDialog> {
               ],
             );
           turbinePower = turbine.power;
+          isManualUpdateEnabled = turbine.isUpdatedManually;
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Slider(
                 value: turbinePower.roundToDouble(),
-                onChangeEnd: _sendNewPower,
+                onChangeEnd: isManualUpdateEnabled ? _sendNewPower : null,
                 onChanged: isManualUpdateEnabled
                     ? (value) {
                         setState(() {
@@ -63,6 +64,7 @@ class _TurbineDialogState extends State<TurbineDialog> {
                 label: turbinePower.toString(),
                 min: 0.0,
                 max: 100.0,
+                inactiveColor: Colors.grey,
               ),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -72,16 +74,15 @@ class _TurbineDialogState extends State<TurbineDialog> {
                 ),
               ),
               SwitchListTile(
+                title: Text("Ручная настройка"),
                 value: isManualUpdateEnabled,
                 onChanged: (value) {
+                  _sendNewManualSetting(value);
                   setState(() {
                     isManualUpdateEnabled = value;
                   });
                 },
               ),
-              turbine.levelCO == null
-                  ? Container()
-                  : Text("Уровень CO: ${turbine.levelCO}"),
             ],
           );
         },
@@ -104,7 +105,15 @@ class _TurbineDialogState extends State<TurbineDialog> {
     final rs = await client.send(Request(
         'POST',
         Constants.SERVER_ADDRESS +
-            "turbines?turbineId=${widget.turbineId}&status=${value.round()}"));
+            "turbines?turbineId=${widget.turbineId}&status=${value.round()}&useManual=true"));
     print(rs.body);
+  }
+
+  void _sendNewManualSetting(bool value) async {
+    final client = BrowserClient();
+    final rs = await client.send(Request(
+        'POST',
+        Constants.SERVER_ADDRESS +
+            "turbines?turbineId=${widget.turbineId}&status=100&useManual=$value"));
   }
 }
